@@ -1,5 +1,5 @@
 ---
-- name: Linux Post-Patch Validation
+- name: Linux Post-Patch and Reboot Validation
   hosts: all
   gather_facts: yes
   vars_files:
