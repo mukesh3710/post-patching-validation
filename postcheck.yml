@@ -32,13 +32,12 @@
         msg: "Uptime exceeded 1 hour! Current uptime: {{ uptime_seconds.stdout }} seconds"
       when: uptime_seconds.stdout | int > 3600
 
-    - name: Remount all file systems
+    - name: Mount all file systems
       ansible.builtin.command: mount -a
-      register: mount_result
       failed_when: false
       changed_when: mount_result.rc == 0
       timeout: 10
 
-    - name: Clean YUM cache
-      ansible.builtin.command: yum clean all
-      changed_when: false
+    - name: Clean package cache (YUM/DNF)
+      ansible.builtin.command: "{{ 'dnf clean all' if os_major_version.stdout | int >= 8 else 'yum clean all' }}"
+      failed_when: false
