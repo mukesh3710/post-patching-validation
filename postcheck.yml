@@ -1,0 +1,44 @@
+---
+- name: Linux Post-Patch Validation
+  hosts: all
+  gather_facts: yes
+  vars_files:
+    - vars/main.yml
+
+  pre_tasks:
+    - name: Get current running kernel version
+      ansible.builtin.shell: uname -r
+      register: current_kernel
+      changed_when: false
+
+    - name: Get OS major version
+      ansible.builtin.shell: awk -F= '/^VERSION_ID/ {print $2}' /etc/os-release | tr -d '"'
+      register: os_major_version
+      changed_when: false
+
+    - name: Validate kernel version
+      ansible.builtin.fail:
+        msg: "Kernel version mismatch! Expected {{ kernel_versions[os_major_version.stdout] }}, but found {{ current_kernel.stdout }}"
+      when: current_kernel.stdout != kernel_versions[os_major_version.stdout]
+
+  tasks:
+    - name: Ensure uptime is less than 1 hour
+      ansible.builtin.shell: awk '{print $1}' /proc/uptime
+      register: uptime_seconds
+      changed_when: false
+
+    - name: Fail if uptime is greater than 3600 seconds (1 hour)
+      ansible.builtin.fail:
+        msg: "Uptime exceeded 1 hour! Current uptime: {{ uptime_seconds.stdout }} seconds"
+      when: uptime_seconds.stdout | int > 3600
+
+    - name: Remount all file systems
+      ansible.builtin.command: mount -a
+      register: mount_result
+      failed_when: false
+      changed_when: mount_result.rc == 0
+      timeout: 10
+
+    - name: Clean YUM cache
+      ansible.builtin.command: yum clean all
+      changed_when: false
