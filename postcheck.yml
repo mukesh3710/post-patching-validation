@@ -1,25 +1,21 @@
 ---
 - name: Linux Post-Patch and Reboot Validation
   hosts: all
-  gather_facts: false
+  gather_facts: true  # Now we use minimal facts instead of shell commands
   vars_files:
     - vars/kernel_version.yml
 
   pre_tasks:
-    - name: Get current running kernel version
-      ansible.builtin.shell: uname -r
-      register: current_kernel
-      changed_when: false
-
-    - name: Get OS major version
-      ansible.builtin.shell: awk -F= '/^VERSION_ID/ {print $2}' /etc/os-release | tr -d '"'
-      register: os_major_version
-      changed_when: false
+    - name: Gather only required facts
+      setup:
+        filter:
+          - ansible_kernel
+          - ansible_distribution_major_version
 
     - name: Validate kernel version
       ansible.builtin.fail:
-        msg: "Kernel version mismatch! Expected {{ kernel_versions[os_major_version.stdout] }}, but found {{ current_kernel.stdout }}"
-      when: current_kernel.stdout != kernel_versions[os_major_version.stdout]
+        msg: "Kernel version mismatch! Expected {{ kernel_versions[ansible_distribution_major_version] }}, but found {{ ansible_kernel }}"
+      when: ansible_kernel != kernel_versions[ansible_distribution_major_version]
 
   tasks:
     - name: Ensure uptime is less than 1 hour
@@ -35,9 +31,9 @@
     - name: Mount all file systems
       ansible.builtin.command: mount -a
       failed_when: false
-      changed_when: mount_result.rc == 0
+      changed_when: false
       timeout: 10
 
     - name: Clean package cache (YUM/DNF)
-      ansible.builtin.command: "{{ 'dnf clean all' if os_major_version.stdout | int >= 8 else 'yum clean all' }}"
+      ansible.builtin.command: "{{ 'dnf clean all' if ansible_distribution_major_version | int >= 8 else 'yum clean all' }}"
       failed_when: false
