@@ -1,7 +1,7 @@
 ---
 - name: Linux Post-Patch and Reboot Validation
   hosts: all
-  gather_facts: yes
+  gather_facts: false
   vars_files:
     - vars/main.yml
 
