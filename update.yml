@@ -1,0 +1,9 @@
+- name: Validate kernel version
+  ansible.builtin.fail:
+    msg: "Kernel version mismatch! Expected {{ kernel_versions[ansible_distribution_major_version] }}, but found {{ ansible_kernel }}"
+  when: ansible_kernel != kernel_versions[ansible_distribution_major_version]
+
+- name: Print success message if kernel matches
+  ansible.builtin.debug:
+    msg: "Kernel version is correct: {{ ansible_kernel }}"
+  when: ansible_kernel == kernel_versions[ansible_distribution_major_version]
